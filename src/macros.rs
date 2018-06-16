@@ -64,8 +64,16 @@ macro_rules! sel {
             unsafe impl Sync for Cheaty {}
 
             // Place the constant value in the correct section.
+            #[no_mangle]
             #[link_section="__TEXT,__objc_methname,cstring_literals"]
             static VALUE : [u8; SEL_LEN] = SEL_DATA;
+            #[no_mangle]
+            #[link_section="__DATA,__objc_imageinfo,regular,no_dead_strip"]
+            static info_version: u32 = 0;
+            #[no_mangle]
+            #[link_section="__DATA,__objc_imageinfo,regular,no_dead_strip"]
+            static info_flags: u32 = 64;
+            #[no_mangle]
             #[link_section="__DATA,__objc_selrefs,literal_pointers,no_dead_strip"]
             static mut REF : Cheaty = Cheaty(&VALUE);
 
