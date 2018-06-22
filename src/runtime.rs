@@ -92,6 +92,7 @@ extern {
     pub fn class_addProtocol(cls: *mut Class, proto: *const Protocol) -> BOOL;
     pub fn class_conformsToProtocol(cls: *const Class, proto: *const Protocol) -> BOOL;
     pub fn class_copyProtocolList(cls: *const Class, outCount: *mut c_uint) -> *mut *const Protocol;
+    pub fn class_getMethodImplementation(cls: *const Class, sel: Sel) -> Imp;
 
     pub fn objc_allocateClassPair(superclass: *const Class, name: *const c_char, extraBytes: usize) -> *mut Class;
     pub fn objc_disposeClassPair(cls: *mut Class);
@@ -345,7 +346,6 @@ impl Class {
             let methods = class_copyMethodList(self, &mut count);
             MallocBuffer::new(methods as *mut _, count as usize).unwrap()
         }
-
     }
 
     /// Checks whether this class conforms to the specified protocol.
@@ -368,6 +368,12 @@ impl Class {
             let mut count: c_uint = 0;
             let ivars = class_copyIvarList(self, &mut count);
             MallocBuffer::new(ivars as *mut _, count as usize).unwrap()
+        }
+    }
+
+    pub fn method_implementation(&self, sel: Sel) -> Imp {
+        unsafe {
+            class_getMethodImplementation(self, sel)
         }
     }
 }
@@ -544,6 +550,20 @@ mod tests {
 
         let methods = cls.instance_methods();
         assert!(methods.len() > 0);
+    }
+
+    #[test]
+    fn test_method_implementation() {
+        let cls = test_utils::custom_class();
+        let sel = Sel::register("foo");
+        let mut obj = test_utils::custom_object();
+        unsafe {
+            obj.set_ivar("_foo", 4u32);
+            let method: extern fn(*mut ::runtime::Object) -> i32 =
+                ::std::mem::transmute(cls.method_implementation(sel));
+            let result = method(&mut *obj);
+            assert_eq!(result, 4);
+        }
     }
 
     #[test]
